@@ -1,0 +1,11 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  background-color: #fff;
+  font-family: "Lantinghei SC", "Open Sans", "Hiragino Sans GB", "\5fae\8f6f\96c5\9ed1", "Microsoft YaHei", SimHei, Helvetica, Arial, SimSun;
+}
+#root {
+  height: 100%;
+  width: 100%;
+}
