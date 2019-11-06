@@ -90,17 +90,10 @@ Class命名:
 +-- src
 |   +-- component // 展示组件
 |   +-- container // 容器组件
-|   +-- router //路由
-|       +-- permission.js // 权限配置
-|       +-- index.js // 创建createBrowserHistory
 |   +-- utils  
 |       +-- urls.js // 请求url, 获取queryString, 解析url的值
 |       +-- http.js // 实例化请求库
 |   +-- view //页面
-|       +-- component //组件
-|       +-- container 
-|       +-- page   //页面
-|       +-- app.jsx
 |   +-- index.jsx //全局入口文件
 +-- package.json // 依赖
 +-- README.md  // 说明文档
