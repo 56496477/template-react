@@ -1,6 +1,8 @@
 import React from 'react';
 import { render } from 'react-dom';
 import Template from 'src/view/template.jsx';
+import { TemplateContainer } from 'src/container/layout';
+import { Button } from 'src/component/Button';
 
 import 'assets/style/index.less';
 
@@ -12,7 +14,10 @@ class Root extends React.PureComponent {
     
     render()  {
         return (
-            <Template />
+            <TemplateContainer>
+                <Template />
+                <Button type="primary">按钮</Button>
+            </TemplateContainer>
         );
     }
 }

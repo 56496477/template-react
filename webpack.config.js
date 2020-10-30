@@ -87,7 +87,6 @@ class WebpackConfig {
                     compilationSuccessInfo: {
                         messages: [
                             `编译成功 运行于http://${host}:${port}`
-                            // `编译成功 运行于http://${host}:${port}${publicPath}`
                         ]
                     }
                 }),
@@ -128,7 +127,7 @@ class WebpackConfig {
 
     get resolve() {
         return {
-            extensions: ['.js', '.jsx', '.scss', '.css', 'less'],
+            extensions: ['.js', '.jsx', '.css', 'less'],
             alias: {
                 src: resolve('./src'),
                 model: resolve('./src/model'),
@@ -253,12 +252,12 @@ class WebpackConfig {
                         {
                             loader: 'less',
                             options: {
-                                modifyVars: {
-                                    'primary-color': '#46b1ed',
-                                    'link-color': '#46b1ed',
-                                    'font-size-base': '14px',
+                                // modifyVars: {
+                                //     'primary-color': '#46b1ed',
+                                //     'link-color': '#46b1ed',
+                                //     'font-size-base': '14px',
 
-                                },
+                                // },
                                 javaEnabled: true,
                                 javascriptEnabled: true
                             }
@@ -294,12 +293,11 @@ class WebpackConfig {
                         {
                             loader: 'less',
                             options: {
-                                modifyVars: {
-                                    'primary-color': '#46b1ed',
-                                    'link-color': '#46b1ed',
-                                    'font-size-base': '14px',
-
-                                },
+                                // modifyVars: {
+                                //     'primary-color': '#46b1ed',
+                                //     'link-color': '#46b1ed',
+                                //     'font-size-base': '14px',
+                                // },
                                 javaEnabled: true,
                                 javascriptEnabled: true
                             }
@@ -317,6 +315,21 @@ class WebpackConfig {
         return modules[this.NODE_ENV];
     }
 
+    get externals() {
+        return {
+            react: 'React',
+            'react-dom': 'ReactDOM',
+            axios: 'axios',
+            history: 'history',
+            'react-router-dom': 'ReactRouterDOM',
+            'styled-components': 'styled',
+            trianglify: 'Trianglify',
+            lodash: '_',
+            moment: 'moment',
+            antd: 'antd'
+        };
+    }
+
     getConfig() {
         const { publicPath, outputPath } = globalConfig;
         const {
@@ -326,7 +339,8 @@ class WebpackConfig {
             devtool,
             devServer,
             module,
-            optimization
+            optimization,
+            externals
         } = this;
         const filename = DevUtil.getOutputFileName(NODE_ENV);
 
@@ -347,7 +361,8 @@ class WebpackConfig {
             devServer,
             devtool,
             module,
-            optimization
+            optimization,
+            externals
         };
     }
 }
