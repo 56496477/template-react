@@ -5,15 +5,11 @@ const { DevUtil } = require('./config/utils');
 const { env } = require('./config/env');
 const { proxy } = require('./config/proxy');
 const CleanPlugin = require('clean-webpack-plugin');
-const CssToFile = require('mini-css-extract-plugin');
-const HtmlPlugin = require('html-webpack-plugin');
-const { loader: exLoader } = CssToFile;
-const UglifyJs = require('uglifyjs-webpack-plugin');
-const UglifyCss = require('optimize-css-assets-webpack-plugin');
-const safeParser = require('postcss-safe-parser');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const FriendlyErrors = require('friendly-errors-webpack-plugin');
-// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const os = require('os');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 class WebpackConfig {
     constructor(BUILD_ENV = 'local') {
@@ -22,14 +18,12 @@ class WebpackConfig {
         } else {
             process.env.NODE_ENV = 'production';
         }
-
         this.NODE_ENV = process.env.NODE_ENV;
         this.BUILD_ENV = BUILD_ENV;
     }
 
     get optimization() {
         if (this.NODE_ENV === 'development') return;
-
         return {
             splitChunks: {
                 name: 'vendors',
@@ -38,25 +32,11 @@ class WebpackConfig {
             runtimeChunk: {
                 name: 'runtime'
             },
+            minimize: true,
             minimizer: [
-                new UglifyJs({
-                    parallel: os.cpus().length,
-                    uglifyOptions: {
-                        compress: {
-                            warnings: false,
-                            drop_console: true,
-                            drop_debugger: true
-                        },
-                        output: {
-                            comments: false
-                        }
-                    }
-                }),
-                new UglifyCss({
-                    cssProcessorOptions: {
-                        parser: safeParser,
-                        discardComments: { removeAll: true }
-                    }
+                new TerserPlugin(),
+                new CssMinimizerPlugin({
+                    parallel: true
                 })
             ]
         };
@@ -66,7 +46,6 @@ class WebpackConfig {
         const { NODE_ENV, BUILD_ENV } = this;
         const { outputPath, publicPath, host, port } = globalConfig;
         const commonPlugins = [
-            //new webpack.IgnorePlugin(/^\.\/locale$/ , /moment$/) ,
             new webpack.DefinePlugin(DevUtil.stringifyEnv(env[BUILD_ENV])),
             new webpack.ContextReplacementPlugin(
                 /moment[\\\/]locale$/,
@@ -77,32 +56,31 @@ class WebpackConfig {
             development: [
                 ...commonPlugins,
                 new webpack.HotModuleReplacementPlugin(),
-                new HtmlPlugin({
+                new HtmlWebpackPlugin({
                     template: resolve('./public/index.html'),
-                    filename: 'index.html',
-                    // favicon: resolve('./public/favicon.ico'),
+                    favicon: resolve('./public/favicon.ico'),
                     rootPath: '/'
                 }),
                 new FriendlyErrors({
                     compilationSuccessInfo: {
                         messages: [
-                            `编译成功 运行于http://${host}:${port}`
+                            `编译成功 运行于http://${host}:${port}${publicPath}`
                         ]
                     }
-                }),
+                })
             ],
             production: [
                 ...commonPlugins,
                 new CleanPlugin([outputPath], { allowExternal: true }),
-                new CssToFile({
+                new MiniCssExtractPlugin({
                     filename: 'assets/style/[name].[contenthash:7].css',
-                    allChunks: true
+                    chunkFilename: '[id].css',
                 }),
-                new HtmlPlugin({
+                new HtmlWebpackPlugin({
                     inject: true,
                     template: resolve('./public/index.html'),
                     rootPath: publicPath,
-                    // favicon: resolve('./public/favicon.ico'),
+                    favicon: resolve('./public/favicon.ico'),
                     minify: {
                         removeComments: true,
                         collapseWhitespace: true,
@@ -115,10 +93,7 @@ class WebpackConfig {
                         minifyCSS: true,
                         minifyURLs: true
                     }
-                }),
-                // new BundleAnalyzerPlugin({
-                //     analyzerMode: 'static'
-                // })
+                })
             ]
         };
 
@@ -127,13 +102,13 @@ class WebpackConfig {
 
     get resolve() {
         return {
-            extensions: ['.js', '.jsx', '.css', 'less'],
+            // extensions: ['.js', 'jsx','.css', 'less'],
             alias: {
                 src: resolve('./src'),
                 model: resolve('./src/model'),
                 view: resolve('./src/view'),
-                component: resolve('./src/component'),
                 container: resolve('./src/container'),
+                component: resolve('./src/component'),
                 router: resolve('./src/router'),
                 assets: resolve('./public/assets'),
                 utils: resolve('./src/utils')
@@ -141,143 +116,65 @@ class WebpackConfig {
         };
     }
 
-    get resolveLoader() {
-        return {
-            moduleExtensions: ['-loader']
-        };
-    }
-
     get devServer() {
         const { publicPath, port, host } = globalConfig;
         return {
-            contentBase: [resolve('./public')],
-            port,
-            publicPath,
-            historyApiFallback: {
-                rewrites: [
-                    {
-                        from: new RegExp(`^${publicPath}`),
-                        to: `${publicPath}index.html`
-                    }
-                ]
+            static: {
+                directory: resolve('./public'),
+                staticOptions: {},
+                publicPath,
+                serveIndex: true,
+                watch: true,
             },
-            compress: true,
+            port,
             hot: true,
             host,
-            open: true,
-            // openPage: publicPath.slice(1),
-            inline: true,
-            noInfo: true,
-            quiet: true,
-            clientLogLevel: 'none',
-            overlay: {
-                warnings: true,
-                errors: true
-            },
+            open: [`${publicPath}`],
             proxy
         };
     }
 
     get devtool() {
         let devtool = false;
-
         if (this.BUILD_ENV === 'local') {
             devtool = 'cheap-module-source-map';
         } else if (env[this.BUILD_ENV].sourceMap) {
             devtool = 'source-map';
         }
-
         return devtool;
     }
 
     get module() {
-        const common = {
+        const cssLoader = {
+            development: 'style',
+            production: MiniCssExtractPlugin.loader
+        };
+        return {
             rules: [
                 {
-                    test: /\.jsx?$/,
+                    test: /\.m?jsx?$/i,
                     use: [
                         {
-                            loader: 'babel'
+                            loader: 'babel-loader',
                         },
-                        {
-                            loader: 'eslint',
-                            options: {
-                                fix: true
-                            }
-                        }
                     ],
                     include: [
                         resolve('./src'),
-                        resolve('./node_modules/build-dev-server-client')
                     ],
                     exclude: /node_modules/
                 },
                 {
-                    exclude: [/\.(js|mjs|jsx|ts|tsx|html|json|scss|less|css)$/],
-                    use: [
-                        {
-                            loader: 'file',
-                            options: {
-                                name: 'assets/media/[name].[hash:8].[ext]'
-                            }
-                        }
-                    ]
-                }
-            ]
-        };
-
-        const development = {
-            rules: [
-                ...common.rules,
-                {
-                    test: /\.css$/,
-                    use: [
-                        {
-                            loader: 'style'
-                        },
-                        {
-                            loader: 'css'
-                        }
-                    ]
+                    exclude: [/\.(js|mjs|jsx|html|json|less|css)$/],
+                    type: 'asset/resource'
                 },
                 {
-                    test: /\.less$/,
-                    use: [
-                        {
-                            loader: 'style'
-                        },
-                        {
-                            loader: 'css'
-                        },
-                        {
-                            loader: 'less',
-                            options: {
-                                // modifyVars: {
-                                //     'primary-color': '#46b1ed',
-                                //     'link-color': '#46b1ed',
-                                //     'font-size-base': '14px',
-
-                                // },
-                                javaEnabled: true,
-                                javascriptEnabled: true
-                            }
-                        }
-                    ]
-                }
-            ]
-        };
-
-        const production = {
-            rules: [
-                ...common.rules,
-                {
                     test: /\.css$/,
                     use: [
                         {
-                            loader: exLoader
+                            loader: cssLoader[this.NODE_ENV]
                         },
                         {
-                            loader: 'css'
+                            loader: 'css-loader'
                         }
                     ]
                 },
@@ -285,19 +182,14 @@ class WebpackConfig {
                     test: /\.less/,
                     use: [
                         {
-                            loader: exLoader
+                            loader: cssLoader[this.NODE_ENV]
                         },
                         {
-                            loader: 'css'
+                            loader: 'css-loader'
                         },
                         {
-                            loader: 'less',
+                            loader: 'less-loader',
                             options: {
-                                // modifyVars: {
-                                //     'primary-color': '#46b1ed',
-                                //     'link-color': '#46b1ed',
-                                //     'font-size-base': '14px',
-                                // },
                                 javaEnabled: true,
                                 javascriptEnabled: true
                             }
@@ -306,41 +198,47 @@ class WebpackConfig {
                 }
             ]
         };
+    }
 
-        const modules = {
-            development,
-            production
+    get resolveLoader() {
+        return {
+            // moduleExtensions: ['-loader']
+            extensions: ['.js', '.jsx'],
+            modules: ['node_modules'],
+            mainFields: ['loader', 'main'],
         };
-
-        return modules[this.NODE_ENV];
     }
 
     get externals() {
-        return {
-            react: 'React',
-            'react-dom': 'ReactDOM',
-            axios: 'axios',
-            history: 'history',
-            'react-router-dom': 'ReactRouterDOM',
-            'styled-components': 'styled',
-            trianglify: 'Trianglify',
-            lodash: '_',
-            moment: 'moment',
-            antd: 'antd'
-        };
+        if (process.env.NODE_ENV === 'production') {
+            return {
+                react: 'React',
+                'react-dom': 'ReactDOM',
+                axios: 'axios',
+                history: 'history',
+                'react-router-dom': 'ReactRouterDOM',
+                'styled-components': 'styled',
+                trianglify: 'Trianglify',
+                lodash: '_',
+                moment: 'moment',
+                antd: 'antd'
+            };
+        } else {
+            return {};
+        }
     }
 
     getConfig() {
         const { publicPath, outputPath } = globalConfig;
         const {
             NODE_ENV,
-            resolveLoader,
             plugins,
             devtool,
             devServer,
             module,
             optimization,
-            externals
+            externals,
+            resolveLoader
         } = this;
         const filename = DevUtil.getOutputFileName(NODE_ENV);
 
@@ -356,10 +254,10 @@ class WebpackConfig {
                 path: outputPath
             },
             resolve: this.resolve,
-            resolveLoader,
             plugins,
             devServer,
             devtool,
+            resolveLoader,
             module,
             optimization,
             externals
