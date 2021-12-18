@@ -2,7 +2,7 @@
 # Template-React
 
 #### 项目安装 启动 调试 发布流程
-进入到项目中下载依赖
+进入到项目中下载依赖1
 `npm inatall or yarn install`
 
 启动项目
