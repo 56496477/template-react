@@ -1,10 +1,11 @@
 import React from 'react';
 import { render } from 'react-dom';
 import Template from 'src/view/template.jsx';
-import { TemplateContainer } from 'src/container/layout';
-import { Button } from 'src/component/Button';
+import { TemplateContainer } from 'src/container/layout/index.jsx';
+import { Button } from 'src/component/Button.jsx';
 
-import 'assets/style/index.less';
+
+// import 'assets/style/index.less';
 
 class Root extends React.PureComponent {
 
